@@ -20,11 +20,8 @@ To access the here implemented diffusion map functions, you need to add
   
 
 ```
-
 include("../src/DiffusionMaps.jl")
-
 using .DiffusionMaps
-
 ````
 
 at the beginning of your code. replace the "../src/DiffusionMaps.jl" with the path to your local version of the DiffusionMaps.jl file.
@@ -40,13 +37,9 @@ You can create a DiffMap model by calling the fit function:
   
 
 ```
-
 using Random
 
-  
-
 X = rand(100, 3) # toy data set, 100 observations with 3 features
-
 model = fit(DiffMap, X) # construct a DiffMap model
 
 ```
@@ -94,11 +87,8 @@ You can embed new points into the reduced-dimensional space using the predict fu
   
 
 ```
-
 new_points = rand(10, 3) # new points to be embedded
-
 embedding = predict(model, new_points) # embed new points using the model
-
 ```
 
 The predict function takes the following arguments:
