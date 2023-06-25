@@ -251,21 +251,22 @@ new_model = fit(DiffMap, new_data)
 """
 function predict(model::DiffMap, new_points::AbstractMatrix, k::Int = 10)
     #check for matching dimensions. 
-    if size(model.X, 1) != size(new_points, 1)
+    if size(model.X, 2) != size(new_points, 2)
         error("Dimension Mismatch, model data has $(size(model.X, 1)) rows and new data has $(size(new_points, 1)) rows.")
     end
     
     #check if enough data is given
-    n = min(k, size(model.X, 2))
+    n = min(k, size(model.X, 1))
+    X_t = transpose(model.X)
+    new_points_t = transpose(new_points)
 
     # Initialize similarity matrix to store the indices of the k most similar points.
-    similarity_matrix_pos = Array{Int}(undef, n, size(new_points, 2))
+    similarity_matrix_pos = Array{Int}(undef, n, size(new_points_t, 2))
     similarity_matrix = similar(similarity_matrix_pos, Float64)
-    similarities = pairwise(model.metric, model.X, new_points)
-
+    similarities = pairwise(model.metric, X_t, new_points_t)
     
-    # Calculate similarity for each column (data point) in new_points.
-    for i in 1:size(new_points, 2)
+    # Calculate similarity for each row (data point) in new_points_t.
+    for i in 1:size(new_points_t, 2)
         # Get the indices of the k most similar points.
         indices = sortperm(similarities[:, i], rev=true)[1:n]
 
@@ -278,22 +279,32 @@ function predict(model::DiffMap, new_points::AbstractMatrix, k::Int = 10)
     for j in 1:size(similarity_matrix, 2)
         column_sum = sum(similarity_matrix[:, j])
         similarity_matrix[:, j] ./= column_sum
+
     end
 
-    new_proj = Array{Float64}(undef, size(model.proj, 1), size(new_points, 2))
-    for i in 1:size(new_points, 2)
+    new_proj = Array{Float64}(undef, model.d, size(new_points_t, 2))
+
+    for i in 1:size(new_points_t, 2)
         indices = similarity_matrix_pos[:, i]
-        weighted_points = model.proj[:, indices]
+        weighted_points = model.proj[indices, :]
 
         for j in 1:size(weighted_points, 2)
             weighted_points[:, j] = similarity_matrix[j, i] *  weighted_points[:, j]
         end
-        new_proj[:, i] = sum(weighted_points, dims=2)
+        new_proj[:, i] = sum(weighted_points, dims=1)
     end
 
-    return new_proj
+    return transpose(new_proj)
 
 end
+
+using Random
+
+data1 = rand(100, 3)
+data2 = rand(10, 3)
+model = fit(DiffMap, data1)
+
+test = predict(model, data2, 3)
 
 
 
