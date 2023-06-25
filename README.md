@@ -3,7 +3,7 @@
 
   
 
-Diffusion Maps is a Julia module for dimension reduction using the Diffusion Maps algorithm. It provides a simple and efficient way to reduce the dimensionality of high-dimensional data while preserving the underlying structure. This module is part of the bachelor's thesis at TU Munich.
+Diffusion Maps is a Julia module for dimension reduction using the Diffusion Maps algorithm. It provides a simple and efficient way to reduce the dimensionality of high-dimensional data while preserving the underlying structure. This module is part of a bachelor's thesis at TU Munich.
 
   
 
@@ -24,7 +24,7 @@ include("../src/DiffusionMaps.jl")
 using .DiffusionMaps
 ````
 
-at the beginning of your code. replace the "../src/DiffusionMaps.jl" with the path to your local version of the DiffusionMaps.jl file.
+at the beginning of your code. Replace the "../src/DiffusionMaps.jl" with the path to your local version of the DiffusionMaps.jl file.
 
   
 
@@ -115,9 +115,12 @@ You can access various properties of the DiffMap model:
 
 ## Toy data sets
 
-There are a few toy data sets including vizualization with a: The oroginal data b: the lower embedding using DIffMaps and c: the lower embedding using PCA (for comparisson.)
+There are a few toy data sets including vizualization. The scatter plots show: 
+**a:** the original data 
+**b:** the lower embedding using DIffMaps and 
+**c:** the lower embedding using PCA (for comparisson.)
 
-Those toy data sets includ:
+Those toy data sets are:
 - a double torus
 - Oo_date (A small circle surrounded by a bigger circle)
 - a spiral
