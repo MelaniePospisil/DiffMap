@@ -44,7 +44,7 @@ size(M::DiffMap) = size(M.proj)
 
 Returns the input dimensions of the model.
 """
-indim(M::DiffMap) = size(M.X, 1)
+indim(M::DiffMap) = size(M.X, 2)
 
 """
     outdim(M)
