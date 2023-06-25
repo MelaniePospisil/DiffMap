@@ -1,9 +1,11 @@
 
 # Diffusion Maps
 
+![example plots](./example_diffmap_readme.png)
   
 
 Diffusion Maps is a Julia module for dimension reduction using the Diffusion Maps algorithm. It provides a simple and efficient way to reduce the dimensionality of high-dimensional data while preserving the underlying structure. This module is part of a bachelor's thesis at TU Munich.
+
 
   
 
