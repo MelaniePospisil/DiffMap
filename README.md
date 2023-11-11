@@ -125,3 +125,4 @@ There are a few toy data sets, including visualization. Those toy data sets are:
 - a Swiss Roll
 - a Toroidal Helix
 
+They are not exported and have to be cloned or copied.
