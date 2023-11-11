@@ -1,4 +1,4 @@
-name = "DiffMap"
+name = "DiffusionMaps"
 uuid = "a5927f71-4e94-4484-9e8d-767c56d7f0c4"
 authors = ["MelaniePospisil <melanie.pospisil@tum.de"]
 version = "0.1.0"
