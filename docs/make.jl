@@ -5,7 +5,7 @@ using .DiffusionMaps
 makedocs(
     sitename="DiffMap Documentation",
     modules=[DiffusionMaps],
-    repo="https://github.com/MelaniePospisil/DiffMap.git",
-    format = Documenter.HTML(; repolink = "https://github.com/MelaniePospisil/DiffMap.git")
+    repo="https://github.com/MelaniePospisil/DiffusionMaps.git",
+    format = Documenter.HTML(; repolink = "https://github.com/MelaniePospisil/DiffusionMaps.git")
 )
 
