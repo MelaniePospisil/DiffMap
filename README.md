@@ -19,17 +19,12 @@ This module is part of a bachelor's thesis at the Technical University of Munich
 
   
 
-To access the Diffusion Map functions, you need to add:
-
-  
+To access the Diffusion Map functions, you need to run:
 
 ```
-include("../src/DiffusionMaps.jl")
-using .DiffusionMaps
+pkg> add https://github.com/MelaniePospisil/DiffusionMaps
+julia> using DiffusionMaps
 ````
-
-at the beginning of your code. Replace the "../src/DiffusionMaps.jl" with the path to your local version of the DiffusionMaps.jl file.
-
   
 
 ### Creating a Diffusion Map model
