@@ -8,3 +8,4 @@ makedocs(
     repo="https://github.com/MelaniePospisil/DiffMap.git",
     format = Documenter.HTML(; repolink = "https://github.com/MelaniePospisil/DiffMap.git")
 )
+
