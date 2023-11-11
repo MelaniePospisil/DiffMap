@@ -1,6 +1,6 @@
 # Diffusion Maps
 
-Add: a part where "what are diffusion maps" is described in two sentences
+Diffusion Maps is a similarity preserving dimensionality reduction.
 
 ## Properties
 
@@ -26,5 +26,4 @@ Add: a part where "what are diffusion maps" is described in two sentences
 
 normalize_laplacian(A::AbstractMatrix, α::Real): Normalize the Laplacian matrix A using a power normalization factor α.
 normalize_direction!(A::AbstractMatrix): Adjust the direction of columns in the matrix A.
-show(io::IO, M::DiffMap): Show the DiffMap model M.
 predict(model::DiffMap, new_points::AbstractMatrix, k::Int = 10): Embed new points into the reduced-dimensional space.

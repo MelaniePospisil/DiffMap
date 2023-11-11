@@ -4,7 +4,9 @@
 ![example plots](./example_diffmap_readme.png)
   
 
-Diffusion Maps is a Julia module for dimension reduction using the Diffusion Maps algorithm. It provides a simple and efficient way to reduce the dimensionality of high-dimensional data while preserving the underlying structure. This module is part of a bachelor's thesis at TU Munich.
+Diffusion Maps is a Julia package for dimension reduction using the Diffusion Maps algorithm. It provides a simple and efficient way to reduce the dimensionality of high-dimensional data while preserving the underlying structure. It is built on the MultivariateStats interface, providing the necessary functions such as fit, projection, predict, and reconstruct.
+
+This module is part of a bachelor's thesis at the Technical University of Munich.
 
 
   
@@ -17,7 +19,7 @@ Diffusion Maps is a Julia module for dimension reduction using the Diffusion Map
 
   
 
-To access the here implemented diffusion map functions, you need to add
+To access the Diffusion Map functions, you need to add:
 
   
 
@@ -70,13 +72,16 @@ You can specify additional keyword arguments to customize the model:
 
 - **t::Int:** The number of transitions. (Default: 1)
 
+- **sparse_enabled::Bool:** Enable sparse representation of the kernel matrix. (Default: false)
+
+- **tol::Real:** Tolerance for sparse representation. Values below `tol` in the similarity matrix will be set to zero. (Default: 1e-6)
   
 
 ### Get the lower dimensional projection
 
   
 
-To get the lower dimensional projection, call  ``` project(model)``` on the created model.
+Call ``` project(model)``` on the created model to get the lower dimensional projection.
 
   
 
@@ -117,14 +122,11 @@ You can access various properties of the DiffMap model:
 
 ## Toy data sets
 
-There are a few toy data sets including vizualization. The scatter plots show: 
-**a:** the original data 
-**b:** the lower embedding using DIffMaps and 
-**c:** the lower embedding using PCA (for comparisson.)
+There are a few toy data sets, including visualization. Those toy data sets are:
 
-Those toy data sets are:
-- a double torus
+- a Double Torus
 - Oo_date (A small circle surrounded by a bigger circle)
-- a spiral
-- a swiss roll
-- a torus helix
+- a Spiral
+- a Swiss Roll
+- a Toroidal Helix
+

@@ -1,3 +1,4 @@
+
 """
 Dimension Reduction with Diffusion Maps
 """
@@ -14,12 +15,10 @@ struct DiffMap{T <: Real} <: NonlinearDimensionalityReduction
     d::Number                   # number of dimensions of the output
     t::Int                      # timescale of the diffusion process; affects the granularity of the resulting representation
     ɛ::Real                     # Parameter for the metric
-    α::Real                     # normalization parameter
     metric::PreMetric           # the metric used for the kernel matrix
     λ::AbstractVector{T}        # biggest d eigenvalues of the distance matrix K
     V::AbstractMatrix{T}        # corresponding d eigenvalues of the distance matrix K
-    K::AbstractMatrix{T}        # kernel matrix
-    proj::AbstractMatrix{T}     # projection
+    P::AbstractMatrix{T}        # normalized stochastic matrix
 end
 
 """
@@ -83,16 +82,19 @@ This is the normalized and symmetric distance matrix.
 The distance is calculated with the metric function.
 Call metric(M) to display the model's metric function.
 """
-kernel(M::DiffMap) = M.K
-
+function kernel(M::DiffMap)::Matrix
+    return M.P
+end
 
 """
-    fit(::Type{DiffMap}, X::AbstractMatrix; 
-        metric::PreMetric=DiffMetric(1.0), 
-        maxoutdim::Int=2,
-        ɛ::Real=1.0, 
-        α::Real=0.5,
-        t::Int=1)::DiffMap    
+fit(::Type{DiffMap}, X::AbstractMatrix; 
+    metric::PreMetric=DiffMetric(1.0), 
+    maxoutdim::Int=2,
+    ɛ::Real=1.0, 
+    α::Real=0.5,
+    t::Int=1,
+    sparse_enabled::Bool=false,
+    tol::Real=1e-6)::DiffMap    
 
 Fit a DiffMap model to `X` using the specified parameters.
 
@@ -111,6 +113,10 @@ Fit a DiffMap model to `X` using the specified parameters.
     Default: 0.5
 * `t::Int`: The number of transitions.
     Default: 1
+* `sparse_enabled::Bool`: Enable sparse representation of the kernel matrix.
+    Default: false
+* `tol::Real`: Tolerance for sparse representation. Values below `tol` in the similarity matrix will be set to zero.
+    Default: 1e-6
     
 # Returns
 * `DiffMap`: A DiffMap object representing the fitted model.
@@ -126,8 +132,11 @@ function fit(::Type{DiffMap}, X::AbstractMatrix;
     maxoutdim::Int=2,
     ɛ::Real=1.0, 
     α::Real=0.5,
-    t::Int=1)::DiffMap    
+    t::Int=1,
+    sparse_enabled::Bool=false,
+    tol::Real=1e-6)::DiffMap    
 
+    training_data = X
     #check for outdim < indim
     if size(X, 2) <= maxoutdim
         error("Target dimension maxoutdim must be set to a smaller number than the number of columns of the data set.")
@@ -136,25 +145,33 @@ function fit(::Type{DiffMap}, X::AbstractMatrix;
     # transpose the data matrix to have the features as the rows
     X_t = transpose(X)
     # compute the similarity matrix 
-    S = pairwise(DiffMetric(ɛ), eachcol(X_t))
+    K = pairwise(DiffMetric(ɛ), eachcol(X_t))
+    if sparse_enabled
+        K = sparse(K .> tol)
+    end
 
     # Normalize the similarity matrix and therefore compute the Laplacian
-    L = normalize_laplacian(S, α)
+    P = normalize_laplacian(K, α)
     
 
-    # Eigendecomposition & reduction
-    c, e= eigs(L, nev=maxoutdim, which=:LM)
+    # Eigendecomposition & reduction, try-catch because of Arpack instability
+    c, e = zeros(maxoutdim), zeros(maxoutdim, size(P, 1))  # Initialize c and e to some default values
+    try
+        c, e = eigs(P, nev=maxoutdim, which=:LM)
+    catch 
+        println("ARPACK Error -> Using LinearAlgebra.eigen() instead")
+        E = eigen(P)
+        idx = sortperm(real(E.values), rev=true)[1:maxoutdim]
+        c, e = E.values[idx], E.vectors[:, idx]
+    end
     λ, V = real(c), real(e)
 
     # turn the eigenvectors in the same direction every time
     normalize_direction!(V)
-
-    Y = (λ .^ t) .* V'
-    # transpose the projection to get back to the representation of rows = data points
-    Y = transpose(Y)
     
-    return DiffMap(X, maxoutdim, t, ɛ, α, metric, λ, V, L, Y)
+    return DiffMap(X, maxoutdim, t, ɛ, metric, λ, V, P)
 end
+
 
 """
 normalize_laplacian(A::AbstractMatrix, α::Real)
@@ -176,14 +193,16 @@ It first constructs a diagonal matrix `D` by summing the rows of `A` and
 placing the resulting sums on the diagonal. 
 
 Then, it applies the power normalization operation `D^(-α) * A * D^(-α)` 
-to obtain the normalized Laplacian matrix.
+to obtain the Laplacian matrix.
+
+Lastly it computes the now-wise normalization `D^(-α) * L`.
 """
 function normalize_laplacian(S::AbstractMatrix, α::Real)
     D_S=Diagonal(vec(sum(S, dims=2)))
-    M= D_S^-(α) * S * D_S^-(α)
-    D_M=Diagonal(vec(sum(M, dims=2)))
-    L= D_M^-(1) * M 
-    return L
+    L= D_S^(-α) * S * D_S^(-α)
+    D_L=Diagonal(vec(sum(L, dims=2)))
+    P=D_L^(-α) * L
+    return P
 end
 
 """
@@ -224,16 +243,17 @@ The format (rows = features or rows = observations) corresponds to the input for
 
 """
 function projection(M::DiffMap)
-    return M.proj
-end
-
-# show
-function show(io::IO, M::DiffMap)
-    idim, odim = size(M)
-    print(io, "DiffMap(indim = $idim, outdim = $odim, principalratio = $(r2(M)))")
+    Y = (M.λ .^ M.t) .* M.V'
+    # transpose the projection to get back to the representation of rows = data points
+    Y = transpose(Y)
+    return Y
 end
 
 """
+predict(model::DiffMap, 
+        data::AbstractMatrix; 
+        k::Int = 1)
+
 Embed new points into the reduced-dimensional space.
 
 # Arguments
@@ -256,16 +276,18 @@ To alter the model and add the new points, consider calculating a new DiffMap mo
 new_data = hcat(model.X, new_points)
 new_model = fit(DiffMap, new_data)
 """
-function predict(model::DiffMap, data::AbstractMatrix; k::Int = 10)
+function predict(model::DiffMap, data::AbstractMatrix; k::Int = 1)
     # Check if the dimension of the model matches the data
     if size(model.X, 2) != size(data, 2)
-        error("Dimension Mismatch, models projection has $(size(model.X, 2)) dimensions and new data has $(size(data, 2)) dimensions.")
+        error("Dimension Mismatch, the model's data has $(size(model.X, 2)) dimensions and the provided data has $(size(data, 2)) dimensions.")
     end
 
-    k = max(abs(min(k, size(model.X, 1))), 1)    # Determine the number of nearest neighbors to consider, whee k is between 1 and the maximum available points in model.proj
+    proj = projection(model)
 
-    result = similar(model.X, Float64, size(data, 1), outdim(model))      # Create an array to store the reconstructed points
-    similarities = pairwise(model.metric, data, model.X, dims = 1)   # Compute similarities between model's projection and new data
+    k = max((min(abs(k), size(model.X, 1))), 1)    # Determine the number of nearest neighbors to consider, whee k is between 1 and the maximum available points in model.proj
+
+    result = similar(model.X, Float64, size(data, 1), outdim(model))    # Create an array to store the reconstructed points
+    similarities = pairwise(model.metric, data, model.X, dims = 1)      # Compute similarities between model's projection and new data
 
     for i in 1:size(data, 1) # for every new data point calculate...
         indices = sortperm(similarities[i, :], rev=true)[1:k]   # ... the k-nearest neighbors in model.X for each new data point
@@ -273,7 +295,7 @@ function predict(model::DiffMap, data::AbstractMatrix; k::Int = 10)
 
         knn_similarities_i ./= sum(knn_similarities_i)          # Normalize the similarity values to make them sum up to 1 for each data point
       
-        result[i, :] = knn_similarities_i' * model.proj[indices, :] # ... the weighted average of the n-nearest points
+        result[i, :] = knn_similarities_i' * proj[indices, :] # ... the weighted average of the n-nearest points
     end
 
     return result
@@ -281,6 +303,10 @@ end
 
 
 """
+reconstruct(model::DiffMap, 
+            data::AbstractMatrix; 
+            k::Int = 1)
+
 Calculate an approximation of the higher dimensional imput, given the lower dimensional output.
 
 # Arguments
@@ -303,23 +329,26 @@ To alter the model and add the new points, consider calculating a new DiffMap mo
 `new_data = hcat(model.X, data)`
 `new_model = fit(DiffMap, new_data)`
 """
-function reconstruct(model::DiffMap, data::AbstractMatrix; k::Int = 10)
+function reconstruct(model::DiffMap, data::AbstractMatrix; k::Int = 1)
     # Check if the dimension of the model matches the data
     if model.d != size(data, 2)
         error("Dimension Mismatch, models projection has $(model.d) dimensions and new data has $(size(data, 2)) dimensions.")
     end
 
-    k = max(abs(min(k, size(model.proj, 1))), 1)    # Determine the number of nearest neighbors to consider, whee k is between 1 and the maximum available points in model.proj
+    proj = projection(model)
 
-    result = similar(model.proj, Float64, size(data, 1)  , indim(model))      # Create an array to store the reconstructed points
-    similarities = pairwise(model.metric, data, model.proj, dims = 1)   # Compute similarities between model's projection and new data
+    k = max((min(abs(k), size(proj, 1))), 1)    # Determine the number of nearest neighbors to consider, whee k is between 1 and the maximum available points in model.proj
+
+    result = similar(proj, Float64, size(data, 1)  , indim(model))      # Create an array to store the reconstructed points
+    similarities = pairwise(model.metric, data, proj, dims = 1)   # Compute similarities between model's projection and new data
     
     for i in 1:size(data, 1) # for every new data point calculate...
         indices = sortperm(similarities[i, :], rev=true)[1:k]   # Find the k-nearest neighbors for each data point
         knn_similarities_i = similarities[i, indices]           # get the similarities of those k nearest neighbours
 
+
         knn_similarities_i ./= sum(knn_similarities_i)          # Normalize the similarity values to make them sum up to 1 for each data point
-      
+
         result[i, :] = knn_similarities_i' * model.X[indices, :] # Weighted average of the n-nearest points
     end
 

@@ -1,18 +1,21 @@
 # diffmap.jl Documentation
 
 ```@docs
-DiffusionMaps.DiffMap
 fit
 projection
 predict
-DiffusionMaps.metric
-DiffusionMaps.kernel
-DiffusionMaps.size
+reconstruct
+size
 indim
 outdim
 eigvals
 eigvecs
-DiffusionMaps.normalize_laplacian
+
 DiffusionMaps.normalize_direction!
+DiffusionMaps.DiffMap
 DiffusionMaps.DiffMetric
+DiffusionMaps.metric
+DiffusionMaps.kernel
+DiffusionMaps.normalize_laplacian
+
 ```

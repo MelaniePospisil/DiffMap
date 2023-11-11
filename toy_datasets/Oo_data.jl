@@ -2,55 +2,43 @@ using Random
 include("../src/DiffusionMaps.jl")
 using .DiffusionMaps
 using Plots
-using MultivariateStats: PCA
-
-layout = @layout [a b c]
 
 function generate_double_circle(n, m)
-        xn = rand(n) * 2 .-1
-        yn = rand(n) * 2 .-1
+    xn = [] 
+    yn = []     # Generate n points uniformly within the inner circle
+    for _ in 1:n
+        theta = rand() * 2 * π
+        r = sqrt(rand() * 2^2)
+        a = r * cos(theta)
+        b = r * sin(theta)
+        push!(xn, a)  # Use push! to add elements to arrays
+        push!(yn, b)
+    end
+    x=hcat(xn, yn)
 
         theta = LinRange(0, 2π, m)
-        xm = 5 * cos.(theta)
-        ym = 5 * sin.(theta)
-        return xn, yn, xm, ym
+        xm = 12 * cos.(theta)
+        ym = 12 * sin.(theta)
+        y = hcat(xm, ym)
+        return x, y
 end
 
+k=100
+# Generate the structure
+n, m = generate_double_circle(k, k)
+training_data = (vcat(n, m))
 
-# Generate the Swiss roll dataset with 1000 points
-xn, yn, xm, ym = generate_double_circle(200, 200)
+model = fit(DiffMap, training_data, maxoutdim=1)
+proj = projection(model)
 
-# Erzeuge den Plot der Swiss Roll mit entsprechender Einfärbung
-s1 = scatter(xn, yn, legend=false,
-        xlabel="x", ylabel="y", markersize=10, color="red",
-        title="Oo", size=(3000, 1300), tickfontsize=40)
-scatter!(xm, ym, legend=false,
-        xlabel="x", ylabel="y", markersize=10, color="blue",
-        title="Oo", size=(3000, 1300), tickfontsize=40)
+s1 = scatter(training_data[1:k, 1], training_data[1:k, 2], 
+            legend=false, color="blue")
+scatter!(training_data[k+1:2k, 1], training_data[k+1:2k, 2], 
+            legend=false, color="red", markerstrokecolor="red")
 
-x_data = vcat(xn, xm)
-y_data = vcat(yn, ym)
-data = hcat(x_data, y_data)
+s2 = scatter(proj[1:k, 1], legend=false, 
+            size=(800, 400), color = "blue", markerstrokecolor="blue")
+scatter!(proj[k+1:2k, 1], legend=false, 
+            size=(800, 400), color = "red", markerstrokecolor="red")
 
-
-modelSR = fit(DiffMap, data, maxoutdim=1, ɛ=1)
-DM_S = modelSR.proj
-
-
-s2 = scatter(zeros(200), DM_S[1:200], legend=false, xlabel="DM", color = "red",
-        markersize=10, title="Diffusion", size=(3000, 1300), tickfontsize=10)
-
-scatter!(zeros(200), DM_S[201:400], legend=false, xlabel="DM", color = "blue",
-        markersize=10, title="Diffusion", size=(3000, 1300), tickfontsize=10)
-
-model2 = fit(PCA, data, maxoutdim=1)
-DM2 = projection(model2)
-        
-s3 = scatter(zeros(200), DM2[1:200], legend=false, xlabel="DM", color = "red",
-        markersize=10, title="Diffusion", size=(3000, 1300), tickfontsize=10)
-
-scatter!(zeros(200), DM2[201:400], legend=false, xlabel="DM", color = "blue",
-        markersize=3, title="Diffusion", size=(3000, 1300), tickfontsize=10)
-        
-        
-plot(s1, s2, s3, layout=layout)
+plot(s1, s2, layout = @layout[a b])
